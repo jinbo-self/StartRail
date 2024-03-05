@@ -293,8 +293,6 @@ class StartRailAutoMap(HookKeyMose):
                 print("文件存在")
                 目标坐标数组路径 = path
                 内存坐标x, 内存坐标y = 获取自身坐标()
-                if 内存坐标x==0 and 内存坐标y==0:
-                    continue
                 print("自身坐标：",内存坐标x,内存坐标y)
                 目标坐标数组1 = 获取坐标寻路数组(目标坐标数组路径, (内存坐标x, 内存坐标y))
                 if len(目标坐标数组1) > 0:
@@ -440,7 +438,6 @@ class StartRailAutoMap(HookKeyMose):
             old_res = new_res
 
     def 自动战斗和对话(self):
-        global 当前角度,当前主任务,当前子任务
         print("自动战斗和对话")
         self_pos_center_x, self_pos_center_y = self_pos_left + (
                 self_pos_right - self_pos_left) / 2, self_pos_up + (self_pos_bottom - self_pos_up) / 2
