@@ -50,9 +50,9 @@ def mouse_move(x, fine=1):
         y = -30 // fine
     else:
         y = x
-    dx = int(16.5 * y * 2.03) #缩放倍率2.03
+    dx = int(16.5 * y * 2.06) #缩放倍率2.03
     win32api.mouse_event(win32con.MOUSEEVENTF_MOVE, dx, 0)  # 进行视角移动
-    time.sleep(0.05 * fine)
+    time.sleep(0.5 * fine)
     if x != y:
         mouse_move(x - y, fine)
 def mouse_moveR(X):

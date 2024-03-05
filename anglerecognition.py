@@ -9,7 +9,7 @@ import pyautogui
 from win32api import Sleep
 
 from function import screenshot
-from moni import mouse_moveR
+from moni import mouse_moveR, mouse_move
 
 
 def pyramid_template_matching(image, template, mask=None):
@@ -163,9 +163,10 @@ if __name__ == '__main__':
             continue
         ang_list = []
         for j in range(i):
-            mouse_moveR(60, fine=3 // i)
+            mouse_move(60, fine=3 // i)
             time.sleep(0.2)
             pyautogui.press('w')
+            time.sleep(1)
             img = screenshot(self_pos_center_x - 19, self_pos_center_y - 19, self_pos_center_x + 19,
                              self_pos_center_y + 19)  # 截的自己箭头图片
             result, _, now_ang, _ = pyramid_template_matching(img, template, mask=mask)  # 获取箭头朝向角度，向上为0度

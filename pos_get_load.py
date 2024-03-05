@@ -39,6 +39,7 @@ def setangle(angle_now, angle_target, fault=10,fun=0):
         if abs(angle_diff < fault):
             return
         print(f"调整视角 相差:{fangxiang * angle_diff}° 当前:{angle_now}° 目标:{angle_target}°  ")
+
         if fun==1:
             mouse_moveR1(int(fangxiang *5* angle_diff))
         mouse_moveR(int(fangxiang * angle_diff))
@@ -83,10 +84,10 @@ def 获取坐标寻路数组(file_path, target_coord,get=True):
     coordinates = coordinates[nearest_index:]
 
     print(f"保留的坐标：{coordinates}")
-
-    if get and len(coordinates) > 1 and is_point_between_2d(target_coord, coordinates[0], coordinates[1]):
-            print("切换近距离坐标")
-            coordinates = coordinates[1:]
+    #
+    # if get and len(coordinates) > 1 and is_point_between_2d(target_coord, coordinates[0], coordinates[1]):
+    #         print("切换近距离坐标")
+    #         coordinates = coordinates[1:]
     return coordinates
 
 

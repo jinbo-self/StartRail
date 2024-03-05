@@ -1,9 +1,10 @@
 import threading
 
 import pyautogui
+import win32file
 import win32gui
 from PIL import Image
-
+import keyboard as kb
 from pynput import keyboard
 from pynput.keyboard import Key
 
@@ -12,7 +13,7 @@ from ultralytics import YOLO
 
 from hookkeymose import HookKeyMose
 from pos_get_load import *
-
+import shutil
 # 箭头坐标125.76, 132.09,165.58, 171.91
 # if(findstr(61, 281, 340, 312)=="混乱行至深处"):第一个任务
 from 预处理图片 import 预处理图片识别教程标记
@@ -54,39 +55,55 @@ def 顺序执行(目标坐标数组路径):
         执行完 = False
         for i in range(len(目标坐标数组1)):
             目标坐标数组 = 目标坐标数组1[i]
+            print("执行数组开始")
             img = screenshot(self_pos_center_x - 19, self_pos_center_y - 19, self_pos_center_x + 19,
                              self_pos_center_y + 19)  # 截的自己箭头图片
+            mask = template[:, :, 3]  # 提取透明度通道作为掩码
             # 其实就是目标坐标，懒得改了，就这样
-
             距离 = math.sqrt((目标坐标数组[0] - 内存坐标x) ** 2 + (目标坐标数组[1] - 内存坐标y) ** 2)
+            print(距离)
             result, _, 当前角度, _ = pyramid_template_matching(img, template, mask=mask)  # 获取箭头朝向角度，向上为0度
             目标角度 = get_tangle_and_distance((内存坐标x, 内存坐标y), (目标坐标数组[0], 目标坐标数组[1]))
             fault = 2
             print("当前坐标：", 内存坐标x, 内存坐标y, "目标坐标:", 目标坐标数组[0], 目标坐标数组[1])
-            setangle(当前角度, 目标角度, fault)
-            now_time = time.time()
+            # setangle(当前角度, 目标角度, fault)
+            # now_time = time.time()
             while 距离 > 0.3:
-                # pyautogui.press('w')
-                if 距离<5:
+                print("循环继续", 当前角度, 目标角度)
+
+                if 距离 < 10:
+                    print("慢速前行")
                     pyautogui.keyUp('w')
-                    interval = 0.5
+                    interval = 0.001
                 else:
-                    pyautogui.keyUp('w')
+                    # pyautogui.keyUp('w')
+                    print("急速飞奔")
                     interval = 0
-                if abs(当前角度 - 目标角度) > 10:
-                    print("开始转角")
+
+                if abs(当前角度 - 目标角度) > 2.0:
+                    print("开始转角:", 当前角度, 目标角度)
                     pyautogui.keyUp('w')
-                    img = screenshot(self_pos_center_x - 19, self_pos_center_y - 19, self_pos_center_x + 19,
-                                     self_pos_center_y + 19)  # 截的自己箭头图片
-                    result, _, 当前角度, _ = pyramid_template_matching(img, template, mask=mask)  # 获取箭头朝向角度，向上为0度
+
                     setangle(当前角度, 目标角度, fault)
-                    sleep(1)
-                print("当前角度",当前角度,"目标角度",目标角度)
-                img = screenshot(self_pos_center_x - 19, self_pos_center_y - 19, self_pos_center_x + 19,self_pos_center_y + 19)  # 截的自己箭头图片
+                    # mouse_moveR(int(目标角度-当前角度))
+                    kb.press_and_release('w')
+                    sleep(0.5)
+                if interval > 0:
+                    sleep(interval)
+                    # 这个好像精度更高点
+                    kb.press_and_release('w')
+                    sleep(0.5)
+                else:
+                    pyautogui.keyDown("w")
+
+                img = screenshot(self_pos_center_x - 19, self_pos_center_y - 19, self_pos_center_x + 19,
+                                 self_pos_center_y + 19)  # 截的自己箭头图片s
                 result, _, 当前角度, _ = pyramid_template_matching(img, template, mask=mask)  # 获取箭头朝向角度，向上为0度
                 内存坐标x, 内存坐标y = 获取自身坐标()
-                目标角度 = get_tangle_and_distance((内存坐标x, 内存坐标y), (目标坐标数组[0], 目标坐标数组[1]))
                 距离 = calculate_distance(目标坐标数组, (内存坐标x, 内存坐标y))
+                目标角度 = get_tangle_and_distance((内存坐标x, 内存坐标y), (目标坐标数组[0], 目标坐标数组[1]))
+                print("当前坐标：", 内存坐标x, 内存坐标y, "目标坐标:", 目标坐标数组[0], 目标坐标数组[1], "当前角度：", 当前角度, "目标角度：", 目标角度, "距离:", 距离)
+
                 Fd = findstr(F的位置)
                 if Fd != "" and Fd != "配控装置":
                     pyautogui.keyDown('f')
@@ -97,23 +114,20 @@ def 顺序执行(目标坐标数组路径):
                         配空装置位置 = (95.87102509, 102.2781296)
                         内存坐标x, 内存坐标y = 获取自身坐标()
                         距离 = calculate_distance(配空装置位置, (内存坐标x, 内存坐标y))
-                        if 距离 < 5 and 第一次按下 == False:
+                        if 距离 < 10 and 第一次按下 == False:
                             pyautogui.press('f')
+                            print("按下装置")
                             第一次按下 = True
                             break
                         配空装置位置1 = (66.0109024, 98.46126556)
                         内存坐标x1, 内存坐标y1 = 获取自身坐标()
                         距离1 = calculate_distance(配空装置位置1, (内存坐标x1, 内存坐标y1))
-                        if 距离1 < 5 and 第二次按下 == False:
+                        if 距离1 < 10 and 第二次按下 == False:
                             pyautogui.press('f')
                             第二次按下 = True
                             break
-                if interval>0:
-                    sleep(interval)
-                    pyautogui.press('w')
-                else:
-                    pyautogui.keyDown("w")
-                执行完 = True
+                内存坐标x, 内存坐标y = 获取自身坐标()
+                距离 = calculate_distance(目标坐标数组, (内存坐标x, 内存坐标y))
             # 遍历数组，走完跳出
             pyautogui.keyUp('w')
             Fd = findstr(F的位置)
@@ -192,7 +206,8 @@ class StartRailAutoMap(HookKeyMose):
             res = findstr((100, 40, 187, 66))
             if res == "教学自录" or res == "任务" or res == "导航" \
                     or res == "界域定锚" or res=="队伍" or res=="等级提升" \
-                    or res=="战斗实况" or res=="跃迁" or res=="旅情事记":
+                    or res=="战斗实况" or res=="跃迁" or res=="旅情事记"\
+                    or res=="行迹":
                 pyautogui.press('esc')
             if findstr(启用载体) == "启用载体":
                 pyautogui.click(启用载体[0]+(启用载体[2]-启用载体[0])/2, 启用载体[1]+(启用载体[3]-启用载体[1])/2)
@@ -221,7 +236,8 @@ class StartRailAutoMap(HookKeyMose):
                 pyautogui.click(1688,998)
             if findstr((1599, 796, 1774, 841))=="提升角色等级":
                 pyautogui.click(1688, 998)
-            if findstr((873, 804, 1056, 847)) == "点击空白处关闭":
+            if findstr((873, 804, 1056, 847)) == "点击空白处关闭" \
+                    or "点击" in findstr((871, 727, 1051, 767)) or "点击" in findstr((874, 702, 1053, 741)):
                 pyautogui.click(1688, 998)
             if findstr((862, 1002, 1063, 1039)) == "点击空白区域继续":
                 pyautogui.click(1688, 998)
@@ -231,6 +247,10 @@ class StartRailAutoMap(HookKeyMose):
                 pyautogui.press('esc')
             if findstr((850, 446, 1125, 493))=="选中右侧敌人作为攻击":
                 pyautogui.click(1365, 500)
+            if "战斗力强大" in findstr((640, 123, 1303, 263)):
+                pyautogui.press('e')
+            if "角色受到伤害" in findstr((320, 771, 690, 876)):
+                pyautogui.press('e')
             old_res = new_res
 
             # 下面是寻路
@@ -283,71 +303,84 @@ class StartRailAutoMap(HookKeyMose):
                     continue
                 目标坐标数组 = 目标坐标数组1[0]
                 # 坐标数组长度 = len(目标坐标数组1)
-                mask = template[:, :, 3]  # 提取透明度通道作为掩码
+                mask = self.template[:, :, 3]  # 提取透明度通道作为掩码
                 self_pos_center_x, self_pos_center_y = self_pos_left + (
                         self_pos_right - self_pos_left) / 2, self_pos_up + (self_pos_bottom - self_pos_up) / 2
                 # 裁剪坐标数组，只留下最近的和之后的，获取最近距离的数组下标，返回该下标之后（包括该下标）的值，也就是后半截数组
                 # 如果离远离终点的点位近那还是舍弃吧
                 print("执行数组")
+                i=0
                 while True:
+                    if 主任务 != findstr(主任务位置) or 子任务 != findstr(子任务位置):
+                        print("跳出当前任务：", 主任务, 子任务, "新任务：", 当前主任务, 当前子任务)
+                        pyautogui.keyUp("w")
+                        break
                     print("执行数组开始")
                     if len(目标坐标数组1) == 0:
                         break
                     img = screenshot(self_pos_center_x - 19, self_pos_center_y - 19, self_pos_center_x + 19,
                                      self_pos_center_y + 19)  # 截的自己箭头图片
+                    mask = self.template[:, :, 3]  # 提取透明度通道作为掩码
                      # 其实就是目标坐标，懒得改了，就这样
                     距离 = math.sqrt((目标坐标数组[0] - 内存坐标x) ** 2 + (目标坐标数组[1] - 内存坐标y) ** 2)
+                    print(距离)
                     result, _, 当前角度, _ = pyramid_template_matching(img, self.template, mask=mask)  # 获取箭头朝向角度，向上为0度
                     目标角度 = get_tangle_and_distance((内存坐标x, 内存坐标y), (目标坐标数组[0], 目标坐标数组[1]))
-
-                    目标坐标数组1 = 获取坐标寻路数组(目标坐标数组路径, (内存坐标x, 内存坐标y))
-                    目标坐标数组 = 目标坐标数组1[0]
                     fault = 2
                     print("当前坐标：", 内存坐标x, 内存坐标y, "目标坐标:", 目标坐标数组[0], 目标坐标数组[1])
-                    setangle(当前角度, 目标角度, fault)
+                    # setangle(当前角度, 目标角度, fault)
 
-                    while 距离 > 0.1:
+                    while 距离 > 0.5:
+
+                        # now =  time.time()
                         print("循环继续",当前角度, 目标角度)
+
                         if 距离 < 10:
                             print("慢速前行")
                             pyautogui.keyUp('w')
                             interval = 0.001
                         else:
-                            pyautogui.keyUp('w')
+                            # pyautogui.keyUp('w')
                             print("急速飞奔")
                             interval = 0
+
                         if abs(当前角度 - 目标角度) > 2.0:
-                            print("开始转角")
+                            print("开始转角:",当前角度,目标角度)
                             pyautogui.keyUp('w')
-                            img = screenshot(self_pos_center_x - 19, self_pos_center_y - 19, self_pos_center_x + 19,
-                                             self_pos_center_y + 19)  # 截的自己箭头图片
-                            result, _, 当前角度, _ = pyramid_template_matching(img, self.template, mask=mask)  # 获取箭头朝向角度，向上为0度
 
                             setangle(当前角度, 目标角度, fault)
-                            sleep(1)
-                        # 计算自己与第0个坐标的角度
-                        img = screenshot(self_pos_center_x - 19, self_pos_center_y - 19, self_pos_center_x + 19,self_pos_center_y + 19)  # 截的自己箭头图片
-                        result, _, 当前角度, _ = pyramid_template_matching(img, self.template, mask=mask)  # 获取箭头朝向角度，向上为0度
-                        内存坐标x, 内存坐标y = 获取自身坐标()
-                        if 内存坐标x == 0 and 内存坐标y == 0:
-                            continue
-                        目标角度 = get_tangle_and_distance((内存坐标x, 内存坐标y), (目标坐标数组[0], 目标坐标数组[1]))
-                        距离 = calculate_distance(目标坐标数组, (内存坐标x, 内存坐标y))
-                        if 主任务 != findstr(主任务位置) or 子任务 != findstr(子任务位置):
-                            跳出当前任务循环=True
-                            break
-                        目标坐标数组1 = 获取坐标寻路数组(目标坐标数组路径, (内存坐标x, 内存坐标y))
-                        目标坐标数组 = 目标坐标数组1[0]
-                        print("当前坐标：", 内存坐标x, 内存坐标y, "目标坐标:", 目标坐标数组[0], 目标坐标数组[1])
-                        print(当前角度,目标角度)
+                            # mouse_moveR(int(目标角度-当前角度))
+                            kb.press_and_release('w')
+                            sleep(0.5)
                         if interval > 0:
                             sleep(interval)
-                            pyautogui.press('w')
-                            sleep(0.1)
-                            pyautogui.keyDown("f")
+                            #这个好像精度更高点
+                            kb.press_and_release('w')
+                            sleep(0.5)
                         else:
                             pyautogui.keyDown("w")
-                            pyautogui.keyDown("f")
+
+                        img = screenshot(self_pos_center_x - 19, self_pos_center_y - 19, self_pos_center_x + 19,
+                                         self_pos_center_y + 19)  # 截的自己箭头图片s
+                        result, _, 当前角度, _ = pyramid_template_matching(img, self.template, mask=mask)  # 获取箭头朝向角度，向上为0度
+                        内存坐标x, 内存坐标y = 获取自身坐标()
+                        距离 = calculate_distance(目标坐标数组, (内存坐标x, 内存坐标y))
+                        目标角度 = get_tangle_and_distance((内存坐标x, 内存坐标y), (目标坐标数组[0], 目标坐标数组[1]))
+                        print("当前坐标：", 内存坐标x, 内存坐标y, "目标坐标:", 目标坐标数组[0], 目标坐标数组[1],"当前角度：",当前角度,"目标角度：",目标角度,"距离:",距离)
+                        pyautogui.press("f")
+                        shutil.copyfile("config", "temp_config")
+                        with open("temp_config", 'r') as file:
+                            lines = file.readlines()
+                        当前主任务 = lines[0].strip() if len(lines) > 0 else None
+                        当前子任务 = lines[1].strip() if len(lines) > 0 else None
+                        if 主任务 != 当前主任务 or 子任务 != 当前子任务:
+                            print("跳出当前任务：",主任务,子任务,"新任务：",当前主任务,当前子任务)
+                            跳出当前任务循环=True
+                            pyautogui.keyUp("w")
+                            break
+                        内存坐标x, 内存坐标y = 获取自身坐标()
+                        距离 = calculate_distance(目标坐标数组, (内存坐标x, 内存坐标y))
+                        # print("执行时间：",time.time()-now)
 
 
                     if len(目标坐标数组1)>1:
@@ -430,33 +463,28 @@ class StartRailAutoMap(HookKeyMose):
                     isPause = True
                     print("识别到自动战斗")
                     #先按大招，再按技能，最后按普攻
-                    pyautogui.press('1')
+                    kb.press_and_release('1')
 
-                    pyautogui.press('2')
+                    kb.press_and_release('2')
 
-                    pyautogui.press('3')
+                    kb.press_and_release('3')
 
-                    pyautogui.press('4')
+                    kb.press_and_release('4')
 
-                    pyautogui.press('e')
-                    pyautogui.press('e')
-                    pyautogui.press('e')
-                    pyautogui.press('e')
+                    kb.press_and_release('e')
+                    sleep(1)
+                    kb.press_and_release('e')
 
-                    pyautogui.press('q')
-                    pyautogui.press('q')
-                    pyautogui.press('q')
-                    pyautogui.press('q')
+                    kb.press_and_release('e')
+                    sleep(1)
+                    kb.press_and_release('e')
 
-                    pyautogui.press('space')
-                    pyautogui.press('space')
+                    kb.press_and_release('q')
+                    sleep(1)
+                    kb.press_and_release('q')
+                    kb.press_and_release('space')
 
-
-
-                    isPause = False
                     sleep(0.01)
-                # 判断该颜色是否为白色
-                # 白色的RGB值是(255, 255, 255)，这里也可以根据需要调整容差
                 #对话
                 if color4 == (241, 213, 153) and color5 == (241, 213, 153)  and color6 == (241, 213, 153):
                     isPause = True
@@ -467,13 +495,27 @@ class StartRailAutoMap(HookKeyMose):
                     pyautogui.press('space')
                     isPause = False
             else:
-
-                img = screenshot(self_pos_center_x - 19, self_pos_center_y - 19, self_pos_center_x + 19,
-                                 self_pos_center_y + 19)  # 截的自己箭头图片
-                mask = template[:, :, 3]  # 提取透明度通道作为掩码
-                result, _, 当前角度, _ = pyramid_template_matching(img, self.template, mask=mask)  # 获取箭头朝向角度，向上为0度
+            #     sleep(2)
+            #     img = screenshot(self_pos_center_x - 19, self_pos_center_y - 19, self_pos_center_x + 19,
+            #                      self_pos_center_y + 19)  # 截的自己箭头图片
+            #     mask = self.template[:, :, 3]  # 提取透明度通道作为掩码
+            #     result, _, 当前角度, _ = pyramid_template_matching(img, self.template, mask=mask)  # 获取箭头朝向角度，向上为0度
                 当前主任务 = findstr(主任务位置)
                 当前子任务 = findstr(子任务位置)
+                所有主任务 = ["混乱行至深处","漩涡止于中心","阴影从未离去","宇宙安宁片刻"]
+                所有子任务 = ["穿过长廊成功进入空间站内部","根据银狼提供的路线继续深入","利用假身份信息通过安全验证",\
+                         "然而银狼似乎已经理解了一切","收拾落单的虚卒只是热身运动","她说触碰光幕会有怪现象发生",\
+                         "协助银狼调查监控室内的终端","银狼点点头看来事情并不简单","与奇物交互揭开监控室的秘密",\
+                         "与银狼会合之后离开接待中心","在银狼的协助下成功取出星核","走廊尽头的监控室或许有猫腻",\
+                         "离开这里，看看外面的情况","前往监控室，与阿兰会合","前往中庭处的中央电梯","前往最上层乘坐电梯，到达主控舱段",\
+                         "使用密钥","听三月七的话，保护好自己","尽快到达月台","前往黑塔的办公室","扫清障碍，继续向前","寻找姬子",\
+                         "找到离开备件库房的方法","继续在主控舱段四处看看，并向艾丝","向艾丝妲了解情况","寻找其他需要帮助的科员","询问阿兰是否需要帮助",\
+                         ]
+                if 当前主任务 in 所有主任务 and 当前子任务 in 所有子任务:
+                    with open("config",'w') as file:
+                        file.write(当前主任务 + "\n")
+                        file.write(当前子任务 + "\n")
+
 
 
 
@@ -499,16 +541,8 @@ def worker(target):
 
 if __name__ == '__main__':
     from multiprocessing import Pool
-
-    ysam = StartRailAutoMap()
-    thread1 = threading.Thread(target=ysam.自动战斗和对话,args=(1,))
-    thread2 = threading.Thread(target=ysam.自动寻路, args = (1,))
-    thread1.start()
-    thread2.start()
-    targets = ['run']
-    with Pool(1) as pool:
+    targets = ['自动战斗和对话','run','自动寻路']
+    with Pool(3) as pool:
         pool.map(worker, targets)
-    thread1.join()
-    thread2.join()
     # ysam = StartRailAutoMap()
-    # ysam.run()
+    # ysam.自动战斗和对话()

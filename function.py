@@ -35,5 +35,10 @@ def findstr(位置):
 
 
 if __name__=="__main__":
-    F的位置 = (850, 446, 1125, 493)  # 待修改确认
-    print(findstr(F的位置))
+    F的位置 = (640, 123, 1303, 263)  # 待修改确认
+    print(findstr((874, 702, 1053, 741)))
+    print("点击" in findstr((874, 702, 1053, 741)))
+    # from 内存操作 import 获取自身坐标
+    # while True:
+    #     内存坐标x, 内存坐标y = 获取自身坐标()
+    #     print(内存坐标x,内存坐标y)
